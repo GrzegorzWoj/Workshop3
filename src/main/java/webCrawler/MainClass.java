@@ -10,8 +10,10 @@ import org.jsoup.select.Elements;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class Main01 {
+public class MainClass {
 
     static final String MAIN_PAGE_URL = "https://www.infoworld.com";
 
@@ -21,15 +23,17 @@ public class Main01 {
         Map<String, String> map = mapArticles(MAIN_PAGE_URL + "/category/java");
 
         Set<String> links = map.keySet();
-        String articleContent;
-        String uuid;
         for (String link : links) {
-//            System.out.println(link);
-            articleContent = loadArticleContent(link);
-            uuid = UUID.randomUUID().toString();
-//            System.out.println(uuid);
-//            System.out.println(articleContent);
-            saveDataToFile(articleContent, uuid + "-" + map.get(link));
+
+
+            ExecutorService executorService = Executors.newFixedThreadPool(10);
+            executorService.execute(() -> {
+                String articleContent = loadArticleContent(link);
+                String uuid = UUID.randomUUID().toString();
+                saveDataToFile(articleContent, uuid + "-" + map.get(link));
+            });
+            executorService.shutdown();
+
         }
     }
 
@@ -72,7 +76,7 @@ public class Main01 {
         Slugify slg = Slugify.builder().build();
         String sluggedFilename = slg.slugify(filenameToSlug);
 
-        File file = new File(sluggedFilename);
+        File file = new File(sluggedFilename.concat(".txt"));
         try {
             FileUtils.writeStringToFile(file, data);
         } catch (IOException e) {
